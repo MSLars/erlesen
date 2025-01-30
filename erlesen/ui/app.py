@@ -1,3 +1,13 @@
+################################################################################
+#   ____             _   _
+#  / ___| _   _ _ __| |_| |__
+#  \___ \| | | | '__| __| '_ \
+#   ___) | |_| | |  | |_| | | |
+#  |____/ \__,_|_|   \__|_| |_|
+#
+# ErLeSen synthetic data generation
+################################################################################
+
 import gradio as gr
 import textstat
 import torch
@@ -7,28 +17,37 @@ from evaluate import load
 from textstat.textstat import textstatistics
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-# Konfiguration
-base_url = "http://127.0.0.1:8080"  # URL des TGI-Servers
+# Configuration
+base_url = "http://127.0.0.1:8080"  # TGI server URL
 client = InferenceClient(base_url=base_url)
 
-# Flag zum Stoppen der Generierung
+# A threading Event to signal stopping text generation
 stop_event = threading.Event()
-
-# SARI-Loader
+# Load SARI metric
 sari = load("sari")
+# Load readability model and tokenizer
+preference_model_name = "agentlans/mdeberta-v3-base-readability"
 
-model_name="agentlans/mdeberta-v3-base-readability"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSequenceClassification.from_pretrained(model_name)
+max_generation_tokens = 2048
+max_chars = 3000
+
+preference_tokenizer = AutoTokenizer.from_pretrained(preference_model_name)
+preference_model = AutoModelForSequenceClassification.from_pretrained(preference_model_name)
+
 device = torch.device("cpu")
-model = model.to(device)
+preference_model = preference_model.to(device)
 
-
-# Simplify-Funktion
+# -------------------------------------------------------------------------
+# Simplify Function
+# Description:
+#   Given a complex input text, sends it to a local TGI server for a
+#   simplified version. Uses streaming to update the output in real time
+#   until either complete or a stop signal is triggered.
+# -------------------------------------------------------------------------
 def simplify_text(complex_text):
     global stop_event
     response = ""
-    stop_event.clear()  # Reset Stop-Event
+    stop_event.clear()  # Reset stop event at the beginning
 
     output = client.chat.completions.create(
         messages=[
@@ -36,25 +55,40 @@ def simplify_text(complex_text):
             {"role": "user", "content": complex_text},
         ],
         stream=True,
-        max_tokens=4096,
+        max_tokens=max_generation_tokens,
     )
+
+    # Stream the generated text pieces
     for chunk in output:
         if stop_event.is_set():
-            break  # Abbrechen der Generierung
+            break
         response += chunk.choices[0].delta.content
         yield response
 
 
-# Funktion zum Stoppen der Generierung
+# -------------------------------------------------------------------------
+# Function: stop_generation
+# Description:
+#   Sets the stop_event to True, which signals the simplify_text generator
+#   to stop yielding new tokens.
+# -------------------------------------------------------------------------
 def stop_generation():
     global stop_event
-    stop_event.set()  # Setze das Stop-Event
+    stop_event.set()
     return "Generierung gestoppt."
 
 
-# Evaluation: Berechne nur SARI
+# -------------------------------------------------------------------------
+# Evaluation: SARI & Readability Metrics
+# Description:
+#   Takes a reference text, the simplified text, and the source text, then
+#   computes the SARI score. Also computes additional readability metrics
+#   like Flesch Reading Ease, LIX, and a custom model-based "Readability."
+# -------------------------------------------------------------------------
 def evaluate_sari(reference, simplified, source):
     metrics = []
+
+    # Only compute SARI if a reference is provided
     if reference:
         sari_score = sari.compute(
             sources=[source],
@@ -64,33 +98,42 @@ def evaluate_sari(reference, simplified, source):
         metrics.append(["SARI", round(sari_score["sari"], 4)])
 
     stst = textstatistics()
-
     stst.set_lang("de")
 
-    metrics.append(["flesch_reading_ease [0 (hard), ..., 100 (easy)]", stst.flesch_reading_ease(simplified)])
-    metrics.append(["lix ... 40 (literature for children) ... 60 (specialist literature)",stst.lix(simplified)])
+    # Flesch Reading Ease (German)
+    fre_score = stst.flesch_reading_ease(simplified)
+    metrics.append(["flesch_reading_ease [0 (hard), ..., 100 (easy)]", fre_score])
 
-    inputs = tokenizer(simplified, return_tensors="pt", truncation=True, padding=True).to(device)
+    # LIX score (rough measure of difficulty)
+    lix_score = stst.lix(simplified)
+    metrics.append(["lix ... 40 (children's lit) ... 60 (technical)", lix_score])
+
+    # Model-based readability
+    inputs = preference_tokenizer(simplified, return_tensors="pt", truncation=True, padding=True).to(device)
     with torch.no_grad():
-        logits = model(**inputs).logits.squeeze().cpu()
+        logits = preference_model(**inputs).logits.squeeze().cpu()
     metrics.append(["Readability", round(logits.item(), 4)])
 
-    # Return a list of lists for Dataframe compatibility
     return metrics
 
 
-max_chars = 2048
-
-# Funktion für Zeichenzähler
+# -------------------------------------------------------------------------
+# Utility: count_text_stats
+# Description:
+#   Given a text, returns a string summarizing character and word counts.
+# -------------------------------------------------------------------------
 def count_text_stats(text):
     chars = len(text)
     words = len(text.split())
     return f"**Characters** {chars}/{max_chars} **Words** {words}"
 
 
-# Gradio-Interface
+# -------------------------------------------------------------------------
+# Main Gradio Interface
+# Description:
+#   Defines the UI layout and connects functions to buttons/inputs.
+# -------------------------------------------------------------------------
 def interface():
-
     theme = gr.themes.Monochrome(
         text_size="lg",
         font=[gr.themes.GoogleFont("Verdana"), "ui-sans-serif", "system-ui", "sans-serif"],
@@ -105,7 +148,6 @@ def interface():
     )
 
     with gr.Blocks(theme=theme) as demo:
-
         gr.Markdown("# Automatische Textvereinfachung")
         gr.Markdown("Geben Sie Text ein und lassen Sie ihn automatisch vereinfachen.")
 
@@ -120,18 +162,24 @@ def interface():
                     elem_id="input_box",
                     autofocus=True,
                     scale=2,
-                    max_length=2048,
+                    max_length=max_chars,
                 )
 
                 with gr.Row(elem_id="input_div"):
-                    stats = gr.Markdown(value=f"**Characters** -/{max_chars} **Words** -", elem_id="stats")
+                    stats = gr.Markdown(
+                        value=f"**Characters** -/{max_chars} **Words** -",
+                        elem_id="stats"
+                    )
 
                     simplify_button = gr.Button(
-                        "Vereinfachen", elem_id="simplify_button"
+                        "Vereinfachen",
+                        elem_id="simplify_button"
                     )
                     stop_button = gr.Button(
-                        "Stop", elem_id="stop_button"
+                        "Stop",
+                        elem_id="stop_button"
                     )
+
             with gr.Column():
                 output_box = gr.Textbox(
                     label="Vereinfachung",
@@ -143,7 +191,7 @@ def interface():
                     interactive=True,
                     show_copy_button=True,
                     scale=2,
-                    max_length=2048,
+                    max_length=max_chars,
                 )
 
         with gr.Accordion("Evaluation anhand eines Referenztexts", open=False):
@@ -155,7 +203,7 @@ def interface():
                 max_lines=10,
                 elem_id="ref_input_box",
                 scale=2,
-                max_length=2048,
+                max_length=max_chars,
             )
 
         with gr.Accordion("Metriken", open=False):
@@ -166,13 +214,22 @@ def interface():
                 interactive=False,
             )
 
+        # Wire UI components to functions
         simplify_button.click(
-            fn=simplify_text, inputs=[input_box], outputs=[output_box]
+            fn=simplify_text,
+            inputs=[input_box],
+            outputs=[output_box]
         )
         stop_button.click(
-            fn=stop_generation, inputs=[], outputs=[output_box]
+            fn=stop_generation,
+            inputs=[],
+            outputs=[output_box]
         )
-        input_box.change(fn=count_text_stats, inputs=[input_box], outputs=[stats])
+        input_box.change(
+            fn=count_text_stats,
+            inputs=[input_box],
+            outputs=[stats]
+        )
         evaluate_button.click(
             fn=evaluate_sari,
             inputs=[ref_input_box, output_box, input_box],
@@ -182,5 +239,8 @@ def interface():
     demo.launch()
 
 
+# -------------------------------------------------------------------------
+# Entry Point
+# -------------------------------------------------------------------------
 if __name__ == "__main__":
     interface()

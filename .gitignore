@@ -5,6 +5,9 @@ erlesen/data/*
 !erlesen/data/hurraki_crawl.jsonl
 !erlesen/data/topics.json
 
+models/*
+!models/__init__.py
+
 __pycache__/
 *.py[cod]
 *$py.class
