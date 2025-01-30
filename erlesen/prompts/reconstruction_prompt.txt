@@ -1,0 +1,80 @@
+- Erstelle einen Text in Leichter Sprache zum Thema {topic}.
+- Leichte Sprache beschreibt das Sprachniveau.
+- Die Art der Sprache soll der Kategorie {category} entsprechen.
+- Um das geforderte Sprachniveau zu erreichen bekommst du Textbeispiele
+- Dein Text soll das sprachliche Niveau gegebener Beispiele übernehmen und auf diesem Sprachniveu einen Text der Kategorie {category} erstellen.
+- Verwende Leichte Sprache, also Sprache die soleicht verständlich wie möglich ist. Adaptiere das Thema und die Kategorie ohne komplexer zu werden.
+- versuche einen {length} Text zu erstellen.
+
+# Schritte
+
+1. Erarbeite ein genaues Thema für den Zeitungsartikel, dass zum Thema {topic} passt. Verstehe die gegebene Thema {topic}  als Oberthema. Hierunter kannst du dir ein detailiertes Thema ausdenken, das typischerweise zur Textkategorie {category} passt. Z.B. ein reales Ereigniss das zum Thema passt oder was auch immer
+  - Die Inhalte deiner Artiklel sollen faktisch korrekt sein.
+2. Analysieren Sie die bereitgestellten Beispiele in Leichter Sprache und das verwendete Sprachniveau.
+  - Suche dir konkrete Formulierungen aus den gegebenen Texten, die besoonders verständlich sind
+  - Leite aus diesen Formulierungen Schemas für Formulierungen in Leichter Sprache ab, die du auf andere Themenbereiche übertragen kannst.
+  - Dein Ziel ist es mit diesen Schemas das Sprachniveau auf einen Text der Kategorie {category} zu übertragen
+3. Erstellen Sie einen inhaltlichen Plan des neu zu erstellenden Texts der Kategorie {category} in Stichpunkten.
+  - Der Plan bezieht soll die Inhalte so strukturieren, dass sie leicht verständlich sind
+  - Gehe davon aus, dass der Leser sich in dem Thema nicht auskennt.
+    - Darum beschränkt sich der Artikel auf Kerninformationen, Details werden nicht aufgenommen
+    - Viele Konzepte die im Themenbereich relevant sind sind für Leser unbekannt. überlege gut ob du diese wirklich für den Text brauchst oder ob es einfachere Formulierungen gibt.
+    - Wenn du komplizierte Begriffe oder Konzepte erwähnst, dann musst du sie erklären
+  - Der Plan bezieht sich nur auf den Punkt 1. und irgnoriert die Formulierungen aus schritt 2, da er sich auf den Inhalt bezieht
+4. Verwenden Sie die Ergebnisse der Analyse und den erstellten Plan, um einen neuen Text der Kategorie {category} mit dem Sprachniveau der Beispiele zu erstellen. Du erstellst einen Text der Kategorie {category}, die Beispiele sind Einträge aus einem Wörterbuch. Achte daher darauf, dass du den Stil der Kategorie {category} adaptierst.
+   - Gebe die besonders Mühe einen schönen Anfang zu finden. Mache die Außerhalt der ```text...``` Gedanken wie ein schöner und passender Anfang aussehen könnte
+   - Wenn zu zusammengesetzte Wörter (Komposita) verwendest, dann trenne diese. Z.B. Amazonas-Gebiet, Kleider-Schrank, ...
+   - Halte dich bei der Ausformulierung an den erstellten Plan
+   - Der Text muss zusammenhängend, gut zu lesen und leicht verständlich sein.
+   - Versuche ein paart der Formulierungen aus Schritt 2. zu verwenden, falls diese passen
+   - Wenn du Formulierungen übernimmst musst du diese so einsetzen, dass ein schöner flüssiger und leiocht verständlicher Text entsteht
+   - Erkläre nur Konzepte die du im text verwendest
+5. Verwenden Sie die Ergebnisse der Analyse um einen ganz kurzen Text (1-2 Sätze) auf den sprachlichen Niveau der Beispiele zu schreiben.
+
+# Beipsile
+
+{easy_read_samples}
+
+# Antwortformat
+
+- Deine Antwort soll 5 Abschnitte beinhalten. Einen abschnitt für jeden der vorigen Schritte.
+- Deine Antwort hat die folgenden 5 Überschriften
+
+# 1. Genaue Definition des Themas
+
+- Definiere das detailierte Thema des Artikels, dass zur gegebenen Kategorie {category} passt.
+
+# 2. Analyse der Sprache
+
+- Analysiere hier das Sprachniveau und das Format der bereitgestellten Texte.
+
+## 2.1 15 Formulierungen aus den bereitgestellten Beispielen
+
+- 15 Schemas für Leicht verständliche Formulierungen aus den Beispielen, die du auch im neuen Text der Kategorie {category} verwenden möchtest.
+
+# 3. Plan des neuen Textes
+
+- Die Stichpunkte sollen in Form einer nicht nummerierten Markdown Liste bereitgestellt werden
+
+- Stichpunkte in eine
+```markdown
+```
+Umgebung
+
+# 4. Neuer Zeitungsartikel in Leichter Sprache
+
+- Achte genau auf Zeilenumbrüche
+- Achte genau auf Worttrennungen: z.B. Bahn-Strecke statt Bahnstrecke
+- Schreibe deine Antwort in eine 
+```text
+```
+Umgebung.
+
+# 5. Kurzer Text in Leichter Sprache
+
+- Achte genau auf Zeilenumbrüche
+- Achte genau auf Worttrennungen: z.B. Bahn-Strecke statt Bahnstrecke
+- Schreibe deine Antwort in eine 
+```text
+```
+Umgebung.

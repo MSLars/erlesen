@@ -1,0 +1,64 @@
+Erhalte Text der Kategorie {category} in Leichter Sprache und rekonstruiere ihn zu einem realistischen Text der Kategorie {category}.
+
+Berücksichtige dabei folgende Aspekte:
+
+- **Interessant strukturieren**: Formuliere ihn so, dass es Spaß macht den Text zu lesen und so, dass man angeregt wird den Artikel bis zum Ende zu lesen.
+- **Inhalt erweitern**: Füge zusätzliche Details und kontextuelle Informationen hinzu, da Leichte Sprache Artikel sich auf das Wesentliche beschränken.
+- **Einfache Informationen auslassen**: Entferne überflüssige oder erklärende Informationen, die in anspruchsvolleren Text der Kategorie {category} nicht notwendig sind.
+- **Artikel strukturieren**: Ordne den Text so, dass er sowohl spannend als auch informativ ist. Verwende eine ansprechende und dynamische Struktur.
+- **Sprache verwenden**: Wähle eine anspruchsvolle und präzise Sprache, die eine gebildete Leserschaft anspricht.
+- **Anpassung der Struktur an den Inhalt**: Wähle die Struktur so, dass sie zum Inhalt des Artikels passt. Text der Kategorie {category} unterscheiden sich je nach Inhalt und Journal stark, treffe hier geeignete Annahmen und strukturiere den Artikel entsprechend.
+- **Sprachliche Herausforderung**: Versuche gezielt Formulierungen der folgenden Klasse einzubetten:
+
+------
+{ling_challenge}
+------
+
+# Schritte
+
+1. **Lese den Text der Kategorie {category} in Leichter Sprache sorgfältig**: Verstehe die Hauptideen und zentrale Informationen.
+2. **Inhaltliche Erweiterung**: Füge relevante Details, Hintergrundinformationen oder unterschiedliche Perspektiven hinzu, um die Komplexität des Text der Kategorie {category} zu erhöhen.
+3. **Journal und Kontext**: Denke dir ein Journal / Zeitung aus in dem der Text steht. Überlege weiter um welche Art von Beitrag es sich bei deinem Text handeln soll. Die Entscheidungen sollen zum Inhalt passen.
+4. **Eliminierung überflüssiger Inhalte aus dem Leichte Sprache Text**: Identifiziere und entferne überflüssige Erklärungselemente oder vereinfachte Sätze, die für Leichte Sprache typisch sind.
+5. **Umstrukturierung des Textes**: Gestalte die Artikelstruktur so, dass sie die Leserschaft fesselt und die Informationen klar übermittelt. Stelle dir Fragen wie: Wie beginnt der Text, um den Leser direkt zu fesseln, oder ist eine Zusammenfassung oder Einleitung am Anfang angebracht?
+6. **Sprachlicher Feinschliff**: Überarbeite den Text stilistisch und syntaktisch, um eine anspruchsvolle und präzise Ausdrucksform zu erzielen.
+
+# Ausgabeformat
+
+- Deine Antwort soll 5 Abschnitte beinhalten. Einen abschnitt für jeden der vorigen Schritte.
+
+# 1. Zusammenfassung der Informationen
+- Fasse hier die wesentlichen Informationen des Leichte Sprache Textes zusammen
+
+# 2. Inhaltliche Erweiterung
+- Welche Informationen könnten zusätz zu denen im Leichte Sprache Text in einem Zeitungartikel stehen?
+  - Gehe davon aus, dass der Leichte Sprache Text alle Kerninformationen beinhaltet
+  - Alle zusätzlichen Informationen sind Detailinformationen oder nicht so relevant wie die Informationen im Leichte Sporache Text
+  - Begründe zu jeder zusätzlichen Information, warum diese realistisch für einen Text der Kategorie {category} ist, aber nicht als Kerninformation in einem Leichte Sprache Text wäre
+
+# 3. Journal und Kontext
+- In welcher Zeitschrift / Zeitung / Journal / Webseite könnte der Artikel den du schreiben wirst erscheinen. Denke dir was passendes aus.
+- Welche Art von Beitrag (genaue Textart) planst du zu erstellen. Die gewählte Art soll zur Vereinfachung passen.
+
+# 4.Eliminierung überflüssiger Inhalte aus dem Leichte Sprache Text
+- Welche Informationen aus dem Leichte Sprache Text sind nur da, um den Inhalt zu vereinfachen und daher nicht relevant für den Text der Kategorie {category}?
+
+# 5. Umstrukturierung des Textes
+- Nutze die Ergebnisse der letzten Schritte um den Inhalt des Text der Kategorie {category} zu strukturieren
+  - Die Struktur soll der eines realistischen und spannenden Text der Kategorie {category} erinnern.
+  - z.B. sind z eitliche und Thematische Sprünge erlaubt, wenn sie so in einem echten Artikel zu erwarten wären
+- Erkläre genau wie du den neuen Text strukturiert und wie dui dafür die Struktur des Leichte Sprache Textes übernimmst oder von dieser abweichst.
+- Die Struktur soll dazu Beitragen, dass man den Artikel gerne liest
+
+# 6. Sprachlicher Feinschliff
+- Formuliere aufbauend auf den Ergebnissen der vorigen Schritte einen interessanten realistischen und anspruchsvollen Text der Kategorie {category}.
+- Binde die Sprachliche Herausforderung ein.
+- Formuliere den Artikel in eine
+```
+```
+Umgebung.
+
+# Hinweise
+
+- Achte darauf, dass die Informationen im rekonstituierten Artikel immer auf Fakten basieren.
+- Reflektiere über die Aspekte, die für die spezifische Leserschaft interessant sein könnten, und wie diese am besten präsentiert werden.

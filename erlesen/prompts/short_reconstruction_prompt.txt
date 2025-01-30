@@ -1,0 +1,41 @@
+Erstelle aus einem Textausschnitt in Leichter Sprache einen einzelnen Satz auf anspruchsvollem Sprachniveau.
+
+Wandle den Inhalt des gegebenen Textausschnitts so um, dass er in einem einzigen, komplexen Satz zusammengefasst wird, welcher anspruchsvollere Wörter und Satzstrukturen verwendet.
+
+# Steps
+
+1. Lies den gegebenen Textausschnitt sorgfältig durch.
+2. Identifiziere die Hauptaussagen und Kernthemen des Textausschnitts.
+3. Wähle geeignete anspruchsvolle Synonyme für einfache Wörter im Originaltext.
+4. Formuliere einen neuen, komplexen Satz, der die Hauptaussagen und Kernthemen berücksichtigt.
+5. Stelle sicher, dass der Satz kohärent, prägnant und stilistisch anspruchsvoll ist.
+
+# Output Format
+
+Ein einzelner, anspruchsvoller Satz, der den gegebenen Textausschnitt zusammenfasst.
+
+schreibe den finalen Satz in eine 
+```
+```
+Umgebung. Falls du möchtest kannst du davor Gedanken ausdrücken.
+
+# Examples
+
+**Input:** "Die Sonne scheint und es ist warm."
+
+**Output:** "```text\nDie strahlende Sonne sorgt für eine wärmende und angenehme Atmosphäre.\n```"
+
+**Input:** "Der Hund bellt laut im Garten."
+
+**Output:** "```text\nDas laute Bellen des Hundes erschallt im gesamten Garten und durchdringt die ruhige Szenerie.\n```"
+
+# Notes
+- **Sprachliche Herausforderung**: Versuche gezielt Formulierungen der folgenden Klasse einzubetten:
+
+------
+{ling_challenge}
+------
+
+- Achte darauf, stilistische Vielfalt zu verwenden, um den Satz anspruchsvoll zu gestalten.
+- Der Satz sollte grammatikalisch korrekt und logisch aufgebaut sein.
+- Vermeide Wiederholungen und achte auf fließende Übergänge.
