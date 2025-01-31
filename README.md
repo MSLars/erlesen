@@ -136,3 +136,19 @@ After you startet the TGI server, start the ui with in another terminal
 ```shell
 python -m erlesen.ui.app
 ```
+
+# Start UI with Docker
+
+To start the UI with Docker you require no python development environment. You just need **docker** and **docker compose**
+installed on your machine. You may also need to create a `models` folder under project root.
+
+The `aimitbacon/erlesen:0.0.1` image contains the UI application and `ghcr.io/huggingface/text-generation-inference:3.0.1`
+contains the inference engine.
+
+Once **docker** and **docker compose** are available on your machine, execute
+
+```bash
+docker compose up
+```
+
+Afterward, the application should be available via `http://localhost:7860`.

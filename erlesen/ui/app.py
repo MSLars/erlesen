@@ -2,6 +2,7 @@
 #
 # ErLeSen synthetic data generation
 ################################################################################
+import os
 from pathlib import Path
 
 import gradio as gr
@@ -19,7 +20,9 @@ from erlesen.evaluation.grammar_checker import grammar_evaluation
 from erlesen import prompts
 
 # Configuration
-base_url = "http://127.0.0.1:8080"  # TGI server URL
+base_url = os.getenv("TGI_URL")
+if not base_url:
+    base_url = "http://127.0.0.1:8080"
 client = InferenceClient(base_url=base_url)
 
 # A threading Event to signal stopping text generation
@@ -378,7 +381,7 @@ def interface():
             outputs=[evaluation_output, grammar_annotated_html, grammar_legend],
         )
 
-    demo.launch()
+    demo.launch(server_name="0.0.0.0")
 
 
 # -------------------------------------------------------------------------

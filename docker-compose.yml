@@ -1,0 +1,45 @@
+services:
+  text-generation-inference:
+    image: ghcr.io/huggingface/text-generation-inference:3.0.1
+    runtime: nvidia  # Enables GPU support
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    shm_size: '1g'  # Shared memory size
+    ports:
+      - "80:80"
+    volumes:
+      - "./models:/data"
+    command:
+      - "--model-id"
+      - "MSLars/erlesen_1b_synth"
+      # Uncomment the next line if you want to enable quantization
+      # - "--quantize"
+      # - "bitsandbytes"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    networks:
+      - app_network
+
+  erlesen-ui:
+    # build: .  # Builds from the Dockerfile in the current directory
+    image: aimitbacon/erlesen:0.0.1
+    depends_on:
+      - text-generation-inference
+    environment:
+      - TGI_URL=http://text-generation-inference:80  # URL of the TGI service
+      - APP_DOMAIN=erlesen.ui.app  # If needed by your app
+    ports:
+      - "7860:7860"  # Adjust according to your service
+    networks:
+      - app_network
+    command: ["poetry", "run", "python", "-m", "erlesen.ui.app"]
+
+networks:
+  app_network:
+    driver: bridge
