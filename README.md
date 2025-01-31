@@ -152,3 +152,6 @@ docker compose up
 ```
 
 Afterward, the application should be available via `http://localhost:7860`.
+
+To be able to use GPU Accelerator inside the docker container you need the [nvidia container toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+It may run without, but inference will be slower.
