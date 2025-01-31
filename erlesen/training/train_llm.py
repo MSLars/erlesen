@@ -564,7 +564,7 @@ if __name__ == "__main__":
 
     dataset_file = Path(data.__file__).parent / "train.jsonl"
     model_output_dir = "models"
-    model_name_or_path = "meta-llama/Llama-3.2-1B"
+    model_name_or_path = "meta-llama/Llama-3.2-3B"
     max_seq_length = 4096
     batch_size = 1
     learning_rate = 5e-5

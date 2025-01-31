@@ -1,4 +1,5 @@
 import spacy
+from spacy import Language
 
 
 ###############################################################################
@@ -119,7 +120,7 @@ def analyze_subclauses(span):
 ###############################################################################
 # Hauptfunktion
 ###############################################################################
-def grammar_evaluation(text: str) -> tuple[float, list[dict]]:
+def grammar_evaluation(text: str, nlp: Language) -> tuple[float, list[dict]]:
     """
     Untersucht den gegebenen Text hinsichtlich:
       1) Genitiv
@@ -143,7 +144,7 @@ def grammar_evaluation(text: str) -> tuple[float, list[dict]]:
     """
     # Lade (ggf. nur einmal global) ein deutsches Spacy-Modell
     # Falls du bereits außerhalb ein nlp = spacy.load(...) hast, kannst du das hier ersetzen.
-    nlp = spacy.load("de_core_news_sm")
+    nlp = spacy.load("de_dep_news_trf")
     doc = nlp(text)
 
     # Hilfswerte

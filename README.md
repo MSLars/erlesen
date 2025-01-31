@@ -1,8 +1,7 @@
 # ErLeSen
 
-This repository contains the content and data to reproduce the results of the paper 
-**Full Synthetic Data for German Text Simplification**. It also provides the main assests of the research peoject
-**ErLeSen** which was funded by the german federal ministry.
+This repository provides the main assests of the research peoject
+**ErLeSen** which was funded by the German Federal Ministry for Family Affairs, Senior Citizens, Women and Youth under the grant number 3923406K05.
 
 Its major contributions are:
 - framework to create synthetic datasets for text simplification
@@ -72,7 +71,7 @@ if __name__ == "__main__":
 Afterwards execute the python script with (assuming you are in the project root directory) 
 
 ```shell
-python erlesen/synth/create_synthetic_data.py
+python -m erlesen.synth.create_synthetic_data
 ```
 
 According to the specified number of training samples `n_samples` the creation takes several hours.
@@ -110,7 +109,7 @@ if __name__ == "__main__":
 Afterwards start the training
 
 ```shell
-python erlesen/training/train_llm.py
+python -m erlesen.training.train_llm
 ```
 
 ### Starting th UI
@@ -129,10 +128,11 @@ bash start_TGI.sh models/ MSLARS/Supermodell
 ```
 
 If you want to deploy a local model, it has to be in the `models/` folder. You have to specify this folder even if
-you use a model from the hub.
+you use a model from the hub. Add `/data/` before the model folder. For example, if you have a local model
+`models/my-model`, the parameter has to be `/data/my-model`
 
-After you startet the TGI server, start the ui with
+After you startet the TGI server, start the ui with in another terminal
 
 ```shell
-paython erlesen/ui/app.py
+python -m erlesen.ui.app
 ```
