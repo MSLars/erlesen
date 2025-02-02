@@ -42,6 +42,8 @@ max_chars = 3000
 preference_tokenizer = AutoTokenizer.from_pretrained(preference_model_name)
 preference_model = AutoModelForSequenceClassification.from_pretrained(preference_model_name)
 
+nlp = spacy.load("de_dep_news_trf")
+
 device = torch.device("cpu")
 preference_model = preference_model.to(device)
 
@@ -100,7 +102,7 @@ def highlight_language_errors(text: str, matches) -> str:
 
     events = []
     for match in matches:
-        # Optional: Bestimmte Fälle überspringen (z. B. Bindestrich-Fälle)
+        # Optional: Bestimmte Fälle überspringen (z. B. Bindestrich-Fälle)
         if match.category == "TYPOS":
             if "-" in match.matchedText:
                 if match.matchedText.replace("-", "").lower() in [r.lower() for r in match.replacements]:
@@ -213,11 +215,33 @@ def calculate_grammar_score(text: str, matches) -> float:
 
 
 # -------------------------------------------------------------------------
+# Neue Hilfsfunktion: calculate_easy_score
+# Description:
+#   Berechnet den Easy Score unter Einbeziehung der Textlänge. Analog zum Grammar Score
+#   wird hier die Fehlerdichte basierend auf den Fehlern aus dem "Leichte Sprache"
+#   LanguageTool bestimmt.
+#
+#       Easy Score = 100 * (1 - (error_density / (error_density + smoothing)))
+#
+#   Dabei wird ein Glättungsfaktor (hier 0,03) verwendet.
+# -------------------------------------------------------------------------
+def calculate_easy_score(text: str, matches) -> float:
+    error_count = len(matches)
+    words = len(text.split())
+    if words == 0:
+        return 100.0
+    error_density = error_count / words
+    smoothing = 0.03  # Glättungsfaktor (anpassbar)
+    score = 100 * (1 - (error_density / (error_density + smoothing)))
+    return round(score, 2)
+
+
+# -------------------------------------------------------------------------
 # Neue Evaluations-Funktion: evaluate_text
 # Description:
 #   Führt die bisherigen Metriken sowie beide LanguageTool-Prüfungen (Grammatik
 #   und Leichte Sprache) durch, kombiniert die Ergebnisse zu einer einzigen
-#   Fehlerübersicht und berechnet den Grammar Score.
+#   Fehlerübersicht und berechnet sowohl den Grammar Score als auch den Easy Score.
 # -------------------------------------------------------------------------
 def evaluate_text(simplified, source):
     metrics = evaluate_sari(simplified, source)
@@ -226,15 +250,17 @@ def evaluate_text(simplified, source):
     matches_grammar = tool_grammar.check(simplified)
     matches_simple = tool_simple.check(simplified)
 
-    # Kombiniere die beiden Ergebnislisten (zusammengeführt)
+    # Kombiniere die beiden Ergebnislisten zu einer einheitlichen Fehlerübersicht
     combined_matches = matches_grammar + matches_simple
-
-    # Erstelle eine kombinierte Fehlerübersicht
     error_html = highlight_language_errors(simplified, combined_matches)
 
-    # Berechne den Grammar Score (hier nur auf Basis der de-DE-Prüfung)
+    # Berechne den Grammar Score (auf Basis der de-DE-Prüfung)
     grammar_score = calculate_grammar_score(simplified, matches_grammar)
     metrics.append(["Grammar Score", grammar_score])
+
+    # Berechne den Easy Score (auf Basis der de-DE-x-simple-language-Prüfung)
+    easy_score = calculate_easy_score(simplified, matches_simple)
+    metrics.append(["Easy Score", easy_score])
 
     return metrics, error_html
 

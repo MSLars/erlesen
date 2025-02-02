@@ -28,7 +28,7 @@ services:
 
   erlesen-ui:
     # build: .  # Builds from the Dockerfile in the current directory
-    image: aimitbacon/erlesen:0.0.1
+    image: aimitbacon/erlesen:0.0.2
     depends_on:
       - text-generation-inference
     environment:

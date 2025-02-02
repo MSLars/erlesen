@@ -1,6 +1,6 @@
 FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
 
-RUN apt-get update && apt-get install -y curl
+RUN apt-get update && apt-get install -y curl default-jre
 
 RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/etc/poetry python3 -
 ENV PATH=$PATH:/etc/poetry/bin
