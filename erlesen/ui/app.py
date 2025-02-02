@@ -4,18 +4,22 @@
 ################################################################################
 import os
 from pathlib import Path
+import threading
 
 import gradio as gr
 import spacy
 import textstat
 import torch
 from huggingface_hub import InferenceClient
-import threading
 from evaluate import load
 from textstat.textstat import textstatistics
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-from erlesen.evaluation.grammar_checker import grammar_evaluation
+import language_tool_python  # Für Rechtschreib- und Grammatikprüfung
+
+# Initialisiere die beiden LanguageTool-Instanzen
+tool_grammar = language_tool_python.LanguageTool('de-DE')
+tool_simple = language_tool_python.LanguageTool('de-DE-x-simple-language')
 
 from erlesen import prompts
 
@@ -38,19 +42,14 @@ max_chars = 3000
 preference_tokenizer = AutoTokenizer.from_pretrained(preference_model_name)
 preference_model = AutoModelForSequenceClassification.from_pretrained(preference_model_name)
 
-nlp = spacy.load("de_dep_news_trf")
-
 device = torch.device("cpu")
 preference_model = preference_model.to(device)
 
 system_message = (Path(prompts.__file__).parent / "system_message.txt").read_text()
 
+
 # -------------------------------------------------------------------------
 # Simplify Function
-# Description:
-#   Given a complex input text, sends it to a local TGI server for a
-#   simplified version. Uses streaming to update the output in real time
-#   until either complete or a stop signal is triggered.
 # -------------------------------------------------------------------------
 def simplify_text(complex_text):
     global stop_event
@@ -66,7 +65,7 @@ def simplify_text(complex_text):
         max_tokens=max_generation_tokens,
     )
 
-    # Stream the generated text pieces
+    # Stream der generierten Textteile
     for chunk in output:
         if stop_event.is_set():
             break
@@ -75,153 +74,90 @@ def simplify_text(complex_text):
 
 
 # -------------------------------------------------------------------------
-# Function: highlight_violations
+# Neue Funktion: highlight_language_errors
 # Description:
-#   Highlight detected violations
+#   Hebt mithilfe von LanguageTool erkannte Rechtschreib- und Grammatikfehler hervor.
+#   Fehlerhafte Textstellen werden unterstrichen und zusätzlich mit einem blass markierten
+#   Hintergrund in der entsprechenden Farbe hervorgehoben.
 # -------------------------------------------------------------------------
-def highlight_violations_nested(text: str, violations: list[dict]) -> str:
-    """
-    Erstellt verschachteltes HTML-Markup für alle Verstöße in `violations`.
-    Bei überlappenden Bereichen werden Spans ineinander verschachtelt,
-    statt textuell dupliziert.
-    """
-
-    # Beispiel-Farbtabelle
+def highlight_language_errors(text: str, matches) -> str:
+    # Farbtabelle für starke Farbe (für die Unterstreichung)
     color_map = {
-        "genitive":           "rgba(255, 245, 157, 0.8)",  # helles Gelb, 80% Deckkraft
-        "passive":            "rgba(129, 212, 250, 0.8)",  # helles Blau
-        "konjunktiv":         "rgba(239, 154, 154, 0.8)",
-        "subclause":          "rgba(179, 157, 219, 0.7)",
-        "complex_subclause":  "rgba(179, 157, 219, 0.7)",
-        "no_svo":             "rgba(255, 204, 128, 0.8)",
-        "long_noun_phrase":   "rgba(255, 213, 79, 0.8)",
-        "long_sentence":      "rgba(255, 171, 145, 0.8)",
-        "long_word":          "rgba(165, 214, 167, 0.8)",
+        "TYPOS": "#1500a0",
+        "GRAMMAR": "#2f8f25",
+        "MISC": "#1500a0",
+        "STYLE": "#27cfe5",
+        "DIFFICULT_WORDS": "#0986a7"
+    }
+    # Blassere Farben für den Hintergrund
+    lighter_color_map = {
+        "TYPOS": "#e6d9ff",
+        "GRAMMAR": "#d4eacb",
+        "MISC": "#e6d9ff",
+        "STYLE": "#ccf2f9",
+        "DIFFICULT_WORDS": "#cceef5"
     }
 
-    # Alle Start/End-Ereignisse sammeln
-    events = []  # (pos, event_type, violation_type)
+    events = []
+    for match in matches:
+        # Optional: Bestimmte Fälle überspringen (z. B. Bindestrich-Fälle)
+        if match.category == "TYPOS":
+            if "-" in match.matchedText:
+                if match.matchedText.replace("-", "").lower() in [r.lower() for r in match.replacements]:
+                    continue
 
-    for v in violations:
-        vtype = v["type"]
-        for (start, end) in v["index"]:
-            # Start-Ereignis
-            events.append((start, "start", vtype))
-            # End-Ereignis
-            events.append((end, "end", vtype))
-
-    # Sortieren: zuerst nach position,
-    # bei Gleichstand "end" vor "start",
-    # damit sich Spans sauber schließen/öffnen
-    # (also kein Null-Width-Span übrig bleibt).
+        start = match.offset
+        end = match.offset + match.errorLength
+        category = str(match.category)
+        message = match.message
+        events.append((start, "start", category, message))
+        events.append((end, "end", category, message))
+    # Sortiere: Bei gleicher Position kommt "end" vor "start"
     events.sort(key=lambda e: (e[0], 0 if e[1] == "end" else 1))
 
-    # Durch den Text laufen und Spans öffnen/schließen
     output = []
-    stack = []  # hält die offenen Violation-Typen
+    stack = []
     current_pos = 0
 
-    def open_span(vtype):
-        """Span für einen Verstoßtyp öffnen."""
-        color = color_map.get(vtype, "rgba(255, 205, 210, 0.8)")
-        return f'<span style="background-color:{color}" data-type="{vtype}">'
+    def open_span(category, message):
+        color = color_map.get(category, "#FFA500")
+        lighter_color = lighter_color_map.get(category, "#FFF5CC")
+        return (
+            f'<span style="'
+            f'background-color: {lighter_color}; '
+            f'text-decoration: underline; '
+            f'text-decoration-color: {color}; '
+            f'cursor: help;" '
+            f'title="{message}">'
+        )
 
-    def close_span(vtype):
-        """Span schließen (entspricht open_span)."""
+    def close_span():
         return "</span>"
 
-    for (pos, etype, vtype) in events:
-        # Text zwischen current_pos und pos unverändert einfügen
+    for pos, etype, category, message in events:
         if pos > current_pos:
-            # Dieser Teil des Texts ist "innen" in allen aktuell offenen Spans
             snippet = text[current_pos:pos]
             output.append(snippet)
             current_pos = pos
 
         if etype == "start":
-            # Span öffnen
-            stack.append(vtype)
-            output.append(open_span(vtype))
-        else:  # etype == "end"
-            # Möglicherweise ist der Span noch in der Mitte des Stacks
-            # => wir müssen zurück bis wir ihn finden
-            if vtype in stack:
-                # Schließe Spans bis zum passenden
-                while stack:
-                    top = stack.pop()
-                    output.append(close_span(top))
-                    if top == vtype:
-                        break
-                # Danach öffnen wir alles wieder,
-                # was eigentlich noch offen sein sollte (danach),
-                # damit die Reihenfolge passt:
-                reopens = []
-                while events and stack:
-                    reopens.append(stack.pop())
-                # ^ In vielen Fällen bräuchte man hier
-                #   die restlichen Events nicht, sondern
-                #   merkt sich separat, was man geöffnet hatte.
-                #   Hier ein vereinfachtes Beispiel.
-                #   Korrekte Handhabung von verschachtelten Overlaps
-                #   kann etwas mehr Logik erfordern.
-
-                # In einem einfachen (strictly nested) Szenario
-                # könnte man direkt ab hier neu öffnen:
-                for t in reversed(reopens):
-                    output.append(open_span(t))
-                    stack.append(t)
-
-            # Wenn der Span nicht mehr existiert (z.B. doppelt geschlossen),
-            # ignorieren wir es.
-
-    # Am Ende restlichen Text anfügen
+            output.append(open_span(category, message))
+            stack.append(category)
+        elif etype == "end":
+            if stack:
+                stack.pop()
+                output.append(close_span())
     if current_pos < len(text):
         output.append(text[current_pos:])
-
-    # Noch offene Spans schließen
     while stack:
-        top = stack.pop()
-        output.append(close_span(top))
-
-    # Insgesamt zusammenfügen
+        stack.pop()
+        output.append(close_span())
     highlighted = "".join(output)
     return f'<div style="white-space: pre-wrap;">{highlighted}</div>'
 
-def get_color_legend():
-    color_map = {
-        "genitive":           "rgba(255, 245, 157, 0.8)",
-        "passive":            "rgba(129, 212, 250, 0.8)",
-        "konjunktiv":         "rgba(239, 154, 154, 0.8)",
-        "subclause":          "rgba(179, 157, 219, 0.7)",
-        "complex_subclause":  "rgba(179, 157, 219, 0.7)",
-        "no_svo":             "rgba(255, 204, 128, 0.8)",
-        "long_noun_phrase":   "rgba(255, 213, 79, 0.8)",
-        "long_sentence":      "rgba(255, 171, 145, 0.8)",
-        "long_word":          "rgba(165, 214, 167, 0.8)",
-    }
-
-    # Du kannst hier dynamisch oder statisch schreiben.
-    # Beispielhaft bauen wir ein HTML-Grid.
-    legend_html_parts = []
-    legend_html_parts.append('<div style="display: flex; flex-wrap: wrap; gap: 1rem;">')
-
-    for vtype, color in color_map.items():
-        block = (
-            f'<div style="display: flex; align-items: center; gap: 0.25em;">'
-            f'  <div style="width: 1em; height: 1em; background-color:{color};"></div>'
-            f'  <span>{vtype}</span>'
-            f'</div>'
-        )
-        legend_html_parts.append(block)
-
-    legend_html_parts.append("</div>")
-    return "".join(legend_html_parts)
 
 # -------------------------------------------------------------------------
-# Function: stop_generation
-# Description:
-#   Sets the stop_event to True, which signals the simplify_text generator
-#   to stop yielding new tokens.
+# Funktion: stop_generation
 # -------------------------------------------------------------------------
 def stop_generation():
     global stop_event
@@ -231,47 +167,80 @@ def stop_generation():
 
 # -------------------------------------------------------------------------
 # Evaluation: SARI & Readability Metrics
-# Description:
-#   Takes a reference text, the simplified text, and the source text, then
-#   computes the SARI score. Also computes additional readability metrics
-#   like Flesch Reading Ease, LIX, and a custom model-based "Readability."
 # -------------------------------------------------------------------------
 def evaluate_sari(simplified, source):
     metrics = []
-
-    # --- 1) Lesbarkeitsmetriken (wie bisher) ---
     stst = textstatistics()
     stst.set_lang("de")
 
     # Flesch Reading Ease (German)
     fre_score = stst.flesch_reading_ease(simplified)
-    metrics.append(["flesch_reading_ease [0 (hard), ..., 100 (easy)]", fre_score])
+    metrics.append(["flesch_reading_ease [0 (schwer), ..., 100 (einfach)]", fre_score])
 
-    # LIX score (rough measure of difficulty)
+    # LIX score
     lix_score = stst.lix(simplified)
-    metrics.append(["lix ... 40 (children's lit) ... 60 (technical)", lix_score])
+    metrics.append(["lix ... 40 (Kinderliteratur) ... 60 (Fachtexte)", lix_score])
 
-    # Model-based readability
+    # Modell-basierte Readability
     inputs = preference_tokenizer(simplified, return_tensors="pt", truncation=True, padding=True).to(device)
     with torch.no_grad():
         logits = preference_model(**inputs).logits.squeeze().cpu()
     metrics.append(["Readability (Modell)", round(logits.item(), 4)])
 
-    # --- 2) Grammar-Check ---
-    grammar_score, violations = grammar_evaluation(simplified, nlp)
-    metrics.append(["Grammar-Score [0..1]", round(grammar_score, 4)])
+    return metrics
 
-    # Annotierten Text erzeugen (HTML)
-    annotated_html = highlight_violations_nested(simplified, violations)
-    legend_html = get_color_legend()
 
-    return metrics, annotated_html, legend_html
+# -------------------------------------------------------------------------
+# Neue Hilfsfunktion: calculate_grammar_score
+# Description:
+#   Berechnet den Grammar Score unter Einbeziehung der Textlänge. Dabei wird
+#   die Fehlerdichte (Fehleranzahl pro Wort) bestimmt und mittels der Formel:
+#
+#       Grammar Score = 100 * (1 - (error_density / (error_density + smoothing)))
+#
+#   berechnet. Der Glättungsfaktor (hier 0,03) sorgt dafür, dass bei wenigen Fehlern
+#   oder langen Texten der Score nicht zu stark sinkt.
+# -------------------------------------------------------------------------
+def calculate_grammar_score(text: str, matches) -> float:
+    error_count = len(matches)
+    words = len(text.split())
+    if words == 0:
+        return 100.0
+    error_density = error_count / words
+    smoothing = 0.03  # Glättungsfaktor (anpassbar)
+    score = 100 * (1 - (error_density / (error_density + smoothing)))
+    return round(score, 2)
+
+
+# -------------------------------------------------------------------------
+# Neue Evaluations-Funktion: evaluate_text
+# Description:
+#   Führt die bisherigen Metriken sowie beide LanguageTool-Prüfungen (Grammatik
+#   und Leichte Sprache) durch, kombiniert die Ergebnisse zu einer einzigen
+#   Fehlerübersicht und berechnet den Grammar Score.
+# -------------------------------------------------------------------------
+def evaluate_text(simplified, source):
+    metrics = evaluate_sari(simplified, source)
+
+    # Prüfe mit de-DE (Grammatik) und de-DE-x-simple-language (Leichte Sprache)
+    matches_grammar = tool_grammar.check(simplified)
+    matches_simple = tool_simple.check(simplified)
+
+    # Kombiniere die beiden Ergebnislisten (zusammengeführt)
+    combined_matches = matches_grammar + matches_simple
+
+    # Erstelle eine kombinierte Fehlerübersicht
+    error_html = highlight_language_errors(simplified, combined_matches)
+
+    # Berechne den Grammar Score (hier nur auf Basis der de-DE-Prüfung)
+    grammar_score = calculate_grammar_score(simplified, matches_grammar)
+    metrics.append(["Grammar Score", grammar_score])
+
+    return metrics, error_html
 
 
 # -------------------------------------------------------------------------
 # Utility: count_text_stats
-# Description:
-#   Given a text, returns a string summarizing character and word counts.
 # -------------------------------------------------------------------------
 def count_text_stats(text):
     chars = len(text)
@@ -281,8 +250,6 @@ def count_text_stats(text):
 
 # -------------------------------------------------------------------------
 # Main Gradio Interface
-# Description:
-#   Defines the UI layout and connects functions to buttons/inputs.
 # -------------------------------------------------------------------------
 def interface():
     theme = gr.themes.Monochrome(
@@ -321,15 +288,8 @@ def interface():
                         value=f"**Characters** -/{max_chars} **Words** -",
                         elem_id="stats"
                     )
-
-                    simplify_button = gr.Button(
-                        "Vereinfachen",
-                        elem_id="simplify_button"
-                    )
-                    stop_button = gr.Button(
-                        "Stop",
-                        elem_id="stop_button"
-                    )
+                    simplify_button = gr.Button("Vereinfachen", elem_id="simplify_button")
+                    stop_button = gr.Button("Stop", elem_id="stop_button")
 
             with gr.Column():
                 output_box = gr.Textbox(
@@ -352,33 +312,17 @@ def interface():
                 elem_id="evaluation_output",
                 interactive=False,
             )
-            grammar_annotated_html = gr.HTML(
-                label="Grammatische Analyse (Hervorhebungen)"
-            )
-            grammar_legend = gr.HTML(
-                label="Legende"
-            )
+            # Eine kombinierte Fehlerübersicht
+            evaluation_html = gr.HTML(elem_id="evaluation_html")
 
         # Wire UI components to functions
-        simplify_button.click(
-            fn=simplify_text,
-            inputs=[input_box],
-            outputs=[output_box]
-        )
-        stop_button.click(
-            fn=stop_generation,
-            inputs=[],
-            outputs=[output_box]
-        )
-        input_box.change(
-            fn=count_text_stats,
-            inputs=[input_box],
-            outputs=[stats]
-        )
+        simplify_button.click(fn=simplify_text, inputs=[input_box], outputs=[output_box])
+        stop_button.click(fn=stop_generation, inputs=[], outputs=[output_box])
+        input_box.change(fn=count_text_stats, inputs=[input_box], outputs=[stats])
         evaluate_button.click(
-            fn=evaluate_sari,
+            fn=evaluate_text,
             inputs=[output_box, input_box],
-            outputs=[evaluation_output, grammar_annotated_html, grammar_legend],
+            outputs=[evaluation_output, evaluation_html],
         )
 
     demo.launch(server_name="0.0.0.0")

@@ -1,4 +1,5 @@
 .env
+.gradio
 
 erlesen/data/*
 !erlesen/data/__init__.py
